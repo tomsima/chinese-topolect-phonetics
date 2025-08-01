@@ -1,0 +1,139 @@
+<!doctype html public "-//w3c//dtd html 4.0 transitional//en">
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+  <title>Experiment: Focus</title>
+  <script language="javascript" type="text/javascript">
+    const list = [
+      "A. 佢做咩呀？佢擺咗本書喺張枱上面。",
+      "B. 佢擺咗<span style='background-color:#FFCC00;'>啲咩</span>喺張枱上面呀？佢擺咗<span style='background-color:#FFCC00;'>本書</span>喺張枱上面。",
+      "C. 佢擺咗本書喺張<span style='background-color:#FFCC00;'>櫈</span>上面呀？唔係喎，佢擺咗本書喺張<span style='background-color:#FFCC00;'>枱</span>上面",
+      "D. <span style='background-color:#FFCC00;'>你</span>擺咗本書喺張枱上面呀？ 唔係喎，<span style='background-color:#FFCC00;'>佢</span>擺咗本書喺張枱上面。"
+    ];
+
+    const REST_TEXT = "You may now take a break";
+    const nRepetitions = 4;
+    const batchSize = 40;
+    let displayList = [];
+    let itemsAdded = 0;
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    for (let i = 0; i < nRepetitions; i++) {
+      let shuffled = shuffle(list.slice());
+      for (let j = 0; j < shuffled.length; j++) {
+        if (j === 0 || shuffled[j] !== shuffled[j - 1]) {
+          displayList.push(shuffled[j]);
+          itemsAdded++;
+        }
+        if (itemsAdded % batchSize === 0) {
+          displayList.push(REST_TEXT);
+        }
+      }
+    }
+
+    const subjectname = prompt("Subject name", "");
+    const experimentdate = prompt("Date of experiment (dd/mm/yy)", "");
+
+    const leftPos = screen.width - 300;
+    const newWindow = window.open('', 'newWin', 'menubar=yes,alwaysLowered=yes,scrollbars=yes,resizable=yes,width=600,height=600,left=' + leftPos + ',top=0');
+
+    newWindow.document.writeln("<html><head>");
+    newWindow.document.writeln("<meta http-equiv=\"Content-Type\" content=\"text/html;charset=utf-8\">");
+    newWindow.document.writeln("<title>Sentence.list</title></head>");
+    newWindow.document.writeln("<style type=\"text/css\">body {padding-left: 100px; padding-right: 100px;}</style>");
+    newWindow.document.writeln("<body bgcolor=white>");
+    newWindow.document.writeln("<font size=+1>");
+    newWindow.document.writeln("<b>Subject name: </b>" + subjectname + "<p>");
+    newWindow.document.writeln("<b>Date of experiment (dd/mm/yy): </b>" + experimentdate + "<p><br>");
+    newWindow.document.writeln("</font>");
+    newWindow.document.writeln("<u>Trial</u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<u>Sentence</u><br>");
+
+    let k = 0;
+    for (let i = 0; i < displayList.length; i++) {
+      if (displayList[i] === REST_TEXT) {
+        newWindow.document.writeln("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;" + displayList[i] + "<br>");
+      } else {
+        k++;
+        newWindow.document.writeln(k + "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;" + displayList[i] + "<br>");
+      }
+    }
+    newWindow.document.write("</body></html>");
+    newWindow.document.close();
+    alert('Save the list first!');
+
+    let thisPic = -1;
+    let trialCount = 0;
+
+    function updateDisplay() {
+      if (thisPic >= 0 && thisPic < displayList.length) {
+        const content = displayList[thisPic];
+        document.getElementById("display").innerHTML = content;
+
+        if (content === REST_TEXT) {
+          document.getElementById("trialNumber").innerText = "Break";
+        } else {
+          document.getElementById("trialNumber").innerText = trialCount;
+        }
+      } else if (thisPic === displayList.length) {
+        document.getElementById("display").innerHTML = "End of experiment. Thanks for your participation";
+        document.getElementById("trialNumber").innerText = "";
+      }
+    }
+
+    function processPrevious() {
+      if (thisPic > 0) {
+        thisPic--;
+        if (displayList[thisPic] !== REST_TEXT) {
+          trialCount--;
+        }
+        updateDisplay();
+      }
+    }
+
+    function processNext() {
+      if (thisPic < displayList.length - 1) {
+        thisPic++;
+        if (displayList[thisPic] !== REST_TEXT) {
+          trialCount++;
+        }
+        updateDisplay();
+      } else if (thisPic === displayList.length - 1) {
+        thisPic++;
+        updateDisplay();
+      }
+    }
+  </script>
+</head>
+
+<body>
+  <div class="container" style="max-width: 1000px; margin: 0 auto; padding: 20px; text-align: center; font-family: 'Segoe UI';">
+    <h2>Instructions</h2>
+    <h3 style="font-weight: normal; line-height: 1.6;">
+      Below, you will see a question and an answer in the textbox.<br>
+      Please say aloud both the question and the sentence as if you are acting as two speakers talking with each other.<br>
+      Pay attention to emphasize the word highlighted in <span style='background-color:#FFCC00;'>yellow</span> when saying the answers.<br>
+      You may see the same trial multiple times.
+      <br><br>
+      Please click Next Sentence to begin.
+    </h3>
+
+    <div style="width: 100%; font-size: 1rem; margin-bottom: 10px;">
+      Sentence: <span id="trialNumber">0</span>
+    </div>
+
+    <div id="display" style="width: 100%; min-height: 100px; font-size: 2rem; padding: 10px; border: 1px solid #ccc; text-align: left;"></div>
+
+    <div class="buttons" style="margin-top: 30px; display: flex; justify-content: center; gap: 20px;">
+      <a href="javascript:processPrevious()" style="text-decoration: none; padding: 10px 20px; font-size: 1rem; background-color: #007bff; color: white; border-radius: 6px;">&laquo; Previous Sentence</a>
+      <a href="javascript:processNext()" style="text-decoration: none; padding: 10px 20px; font-size: 1rem; background-color: #007bff; color: white; border-radius: 6px;">Next Sentence &raquo;</a>
+    </div>
+  </div>
+</body>
+</html>

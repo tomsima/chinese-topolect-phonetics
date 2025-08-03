@@ -1,9 +1,9 @@
-<!doctype html public "-//w3c//dtd html 4.0 transitional//en">
+<!doctype html>
 <html>
 <head>
   <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
   <title>Experiment: Focus</title>
-  <script language="javascript" type="text/javascript">
+  <script type="text/javascript">
     const list = [
       "A. 佢做咩呀？佢擺咗本書喺張枱上面。",
       "B. 佢擺咗<span style='background-color:#FFCC00;'>啲咩</span>喺張枱上面呀？佢擺咗<span style='background-color:#FFCC00;'>本書</span>喺張枱上面。",
@@ -36,40 +36,18 @@
           displayList.push(REST_TEXT);
         }
       }
+      displayList.push(`<span style='color: green;'>end of sentence set ${i + 1}</span>`);
     }
 
-    const subjectname = prompt("Subject name", "");
+    const subjectname = prompt("Name", "");
     const experimentdate = prompt("Date of experiment (dd/mm/yy)", "");
-
-    const leftPos = screen.width - 300;
-    const newWindow = window.open('', 'newWin', 'menubar=yes,alwaysLowered=yes,scrollbars=yes,resizable=yes,width=600,height=600,left=' + leftPos + ',top=0');
-
-    newWindow.document.writeln("<html><head>");
-    newWindow.document.writeln("<meta http-equiv=\"Content-Type\" content=\"text/html;charset=utf-8\">");
-    newWindow.document.writeln("<title>Sentence.list</title></head>");
-    newWindow.document.writeln("<style type=\"text/css\">body {padding-left: 100px; padding-right: 100px;}</style>");
-    newWindow.document.writeln("<body bgcolor=white>");
-    newWindow.document.writeln("<font size=+1>");
-    newWindow.document.writeln("<b>Subject name: </b>" + subjectname + "<p>");
-    newWindow.document.writeln("<b>Date of experiment (dd/mm/yy): </b>" + experimentdate + "<p><br>");
-    newWindow.document.writeln("</font>");
-    newWindow.document.writeln("<u>Trial</u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<u>Sentence</u><br>");
-
-    let k = 0;
-    for (let i = 0; i < displayList.length; i++) {
-      if (displayList[i] === REST_TEXT) {
-        newWindow.document.writeln("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;" + displayList[i] + "<br>");
-      } else {
-        k++;
-        newWindow.document.writeln(k + "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;" + displayList[i] + "<br>");
-      }
-    }
-    newWindow.document.write("</body></html>");
-    newWindow.document.close();
-    alert('Save the list first!');
 
     let thisPic = -1;
     let trialCount = 0;
+
+    function isSentence(content) {
+      return content !== REST_TEXT && !content.includes("end of sentence set");
+    }
 
     function updateDisplay() {
       if (thisPic >= 0 && thisPic < displayList.length) {
@@ -79,19 +57,33 @@
         if (content === REST_TEXT) {
           document.getElementById("trialNumber").innerText = "Break";
         } else {
-          document.getElementById("trialNumber").innerText = trialCount;
+          document.getElementById("trialNumber").innerText = "";
         }
-      } else if (thisPic === displayList.length) {
+      } else if (thisPic >= displayList.length) {
         document.getElementById("display").innerHTML = "End of experiment. Thanks for your participation";
         document.getElementById("trialNumber").innerText = "";
+        document.getElementById("downloadBtn").style.display = "inline-block"; 
+        document.getElementById("nextBtn").style.display = "none"; // hide Next Sentence
+      }
+
+      // Hide Previous button on first page (thisPic < 0)
+      if (thisPic < 0) {
+        document.getElementById("prevBtn").style.display = "none";
+      } else {
+        document.getElementById("prevBtn").style.display = "inline-block";
       }
     }
 
     function processPrevious() {
       if (thisPic > 0) {
         thisPic--;
-        if (displayList[thisPic] !== REST_TEXT) {
+        if (isSentence(displayList[thisPic])) {
           trialCount--;
+        }
+        // Show the Next button again if we're not at the end
+        if (thisPic < displayList.length) {
+          document.getElementById("nextBtn").style.display = "inline-block";
+          document.getElementById("downloadBtn").style.display = "none";
         }
         updateDisplay();
       }
@@ -100,40 +92,76 @@
     function processNext() {
       if (thisPic < displayList.length - 1) {
         thisPic++;
-        if (displayList[thisPic] !== REST_TEXT) {
+        if (isSentence(displayList[thisPic])) {
           trialCount++;
         }
         updateDisplay();
-      } else if (thisPic === displayList.length - 1) {
-        thisPic++;
+      } else {
+        thisPic = displayList.length;
         updateDisplay();
       }
     }
+
+    function generateFileContent() {
+      let content = `Subject Name: ${subjectname}\nDate of experiment: ${experimentdate}\n\nTrial\tSentence\n`;
+      let k = 0;
+      for (let i = 0; i < displayList.length; i++) {
+        if (displayList[i] === REST_TEXT) {
+          content += `\t${REST_TEXT}\n`;
+        } else if (isSentence(displayList[i])) {
+          k++;
+          const textOnly = displayList[i].replace(/<[^>]*>?/gm, ''); // remove HTML tags
+          content += `${k}\t${textOnly}\n`;
+        }
+      }
+      return content;
+    }
+
+    function downloadResults() {
+      const fileContent = generateFileContent();
+      const blob = new Blob([fileContent], {type: "text/plain;charset=utf-8"});
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `ZH-YT-sentence-list-${subjectname}-${experimentdate}.txt`;;
+      link.click();
+    }
+
+    window.onload = function() {
+      document.getElementById("repetitionCount").innerText = nRepetitions;
+      // Hide Previous button initially
+      document.getElementById("prevBtn").style.display = "none";
+    };
   </script>
 </head>
 
 <body>
-  <div class="container" style="max-width: 1000px; margin: 0 auto; padding: 20px; text-align: center; font-family: 'Segoe UI';">
+  <div class="container" style="max-width: 1100px; margin: 0 auto; padding: 20px; text-align: center; font-family: 'Segoe UI';">
     <h2>Instructions</h2>
-    <h3 style="font-weight: normal; line-height: 1.6;">
+    <h3 id="instructions" style="font-weight: normal; line-height: 1.6;">
       Below, you will see a question and an answer in the textbox.<br>
       Please say aloud both the question and the sentence as if you are acting as two speakers talking with each other.<br>
-      Pay attention to emphasize the word highlighted in <span style='background-color:#FFCC00;'>yellow</span> when saying the answers.<br>
-      You may see the same trial multiple times.
-      <br><br>
-      Please click Next Sentence to begin.
+      Pay attention to emphasize the right word when saying the answers.<br>
+      You will see a total of <span id="repetitionCount">x</span> sentence sets.<br><br>
+      在下面的框里，你会看到一个问题和一个答案。<br>
+      请把问题和答案都大声读出来，就像两个人在聊天一样。<br>
+      读答案的时候，记得把重点词说得更清楚。<br>
+      一共会有 <span id="repetitionCount">4</span> 组句子。<br><br>
+
+      Please click Next Sentence to begin.<br>
+      点击"下一句"就可以开始啦。
     </h3>
 
-    <div style="width: 100%; font-size: 1rem; margin-bottom: 10px;">
-      Sentence: <span id="trialNumber">0</span>
-    </div>
-
     <div id="display" style="width: 100%; min-height: 100px; font-size: 2rem; padding: 10px; border: 1px solid #ccc; text-align: left;"></div>
+    <p id="trialNumber" style="font-size: 1.2rem; margin-top: 10px;"></p>
 
     <div class="buttons" style="margin-top: 30px; display: flex; justify-content: center; gap: 20px;">
-      <a href="javascript:processPrevious()" style="text-decoration: none; padding: 10px 20px; font-size: 1rem; background-color: #007bff; color: white; border-radius: 6px;">&laquo; Previous Sentence</a>
-      <a href="javascript:processNext()" style="text-decoration: none; padding: 10px 20px; font-size: 1rem; background-color: #007bff; color: white; border-radius: 6px;">Next Sentence &raquo;</a>
+      <a id="prevBtn" href="javascript:processPrevious()" style="text-decoration: none; padding: 10px 20px; font-size: 1rem; background-color: #007bff; color: white; border-radius: 6px;">&laquo; 上一句 | Previous Sentence</a>
+      <a id="nextBtn" href="javascript:processNext()" style="text-decoration: none; padding: 10px 20px; font-size: 1rem; background-color: #007bff; color: white; border-radius: 6px;">下一句 | Next Sentence &raquo;</a>
     </div>
+
+    <button id="downloadBtn" onclick="downloadResults()" style="display:none; margin-top:20px; padding:10px 20px; font-size:1rem; background-color:#28a745; color:white; border:none; border-radius:6px; cursor:pointer;">
+      Download Sentence File
+    </button>
   </div>
 </body>
 </html>

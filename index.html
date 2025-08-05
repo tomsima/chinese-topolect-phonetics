@@ -4,11 +4,18 @@
   <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
   <title>Experiment: Focus</title>
   <script type="text/javascript">
-    const list = [
-      "A. 佢做咗啲咩？佢擺咗本書喺張枱上面。",
-      "B. 佢擺咗<span style='background-color:#FFCC00;'>啲咩</span>喺張枱上面呀？佢擺咗<span style='background-color:#FFCC00;'>本書</span>喺張枱上面。",
-      "C. 佢擺咗本書喺張<span style='background-color:#FFCC00;'>櫈</span>上面呀？唔係啊，佢擺咗本書喺張<span style='background-color:#FFCC00;'>枱</span>上面",
-      "D. <span style='background-color:#FFCC00;'>你</span>擺咗本書喺張枱上面呀？ 唔係啊，<span style='background-color:#FFCC00;'>佢</span>擺咗本書喺張枱上面。"
+    const list1 = [
+      "<span style='color: white;'>A.</span> 佢做咗啲咩？佢擺咗本書喺張枱上面。",
+      "<span style='color: white;'>B.</span> 佢擺咗<span style='background-color:#FFCC00;'>啲咩</span>喺張枱上面呀？佢擺咗<span style='background-color:#FFCC00;'>本書</span>喺張枱上面。",
+      "<span style='color: white;'>C.</span> 佢擺咗本書喺張<span style='background-color:#FFCC00;'>櫈</span>上面呀？唔係啊，佢擺咗本書喺張<span style='background-color:#FFCC00;'>枱</span>上面。",
+      "<span style='color: white;'>D.</span> <span style='background-color:#FFCC00;'>你</span>擺咗本書喺張枱上面呀？ 唔係啊，<span style='background-color:#FFCC00;'>佢</span>擺咗本書喺張枱上面。"
+    ];
+
+    const list2 = [
+      "<span style='color: white;'>A.</span> 你話乜嘢？嗰個嘉賓拎膠樽。",
+      "<span style='color: white;'>B.</span> 邊個拎膠樽？<span style='background-color:#FFCC00;'>嗰個嘉賓</span>拎膠樽。",
+      "<span style='color: white;'>C.</span> 嗰個嘉賓乜嘢膠樽？嗰個嘉賓<span style='background-color:#FFCC00;'>拎</span>膠樽。",
+      "<span style='color: white;'>D.</span> 嗰個嘉賓拎乜嘢？嗰個嘉賓拎<span style='background-color:#FFCC00;'>膠樽</span>。"
     ];
 
     const REST_TEXT = "You may now take a break";
@@ -25,18 +32,36 @@
       return array;
     }
 
+    // First, add all repetitions of list1
     for (let i = 0; i < nRepetitions; i++) {
-      let shuffled = shuffle(list.slice());
-      for (let j = 0; j < shuffled.length; j++) {
-        if (j === 0 || shuffled[j] !== shuffled[j - 1]) {
-          displayList.push(shuffled[j]);
+      let shuffled1 = shuffle(list1.slice());
+      
+      for (let j = 0; j < shuffled1.length; j++) {
+        if (j === 0 || shuffled1[j] !== shuffled1[j - 1]) {
+          displayList.push(shuffled1[j]);
           itemsAdded++;
         }
         if (itemsAdded % batchSize === 0) {
           displayList.push(REST_TEXT);
         }
       }
-      displayList.push(`<span style='color: green;'>end of sentence set ${i + 1}</span>`);
+      displayList.push(`<span style='color: grey; font-size: 1rem;'>end of sentence set ${i + 1} (List 1)</span>`);
+    }
+
+    // Then, add all repetitions of list2
+    for (let i = 0; i < nRepetitions; i++) {
+      let shuffled2 = shuffle(list2.slice());
+      
+      for (let j = 0; j < shuffled2.length; j++) {
+        if (j === 0 || shuffled2[j] !== shuffled2[j - 1]) {
+          displayList.push(shuffled2[j]);
+          itemsAdded++;
+        }
+        if (itemsAdded % batchSize === 0) {
+          displayList.push(REST_TEXT);
+        }
+      }
+      displayList.push(`<span style='color: grey; font-size: 1rem;'>end of sentence set ${i + 1} (List 2)</span>`);
     }
 
     const subjectname = prompt("Name", "");
@@ -105,10 +130,29 @@
     function generateFileContent() {
       let content = `Subject Name: ${subjectname}\nDate of experiment: ${experimentdate}\n\nTrial\tSentence\n`;
       let k = 0;
+      let addedList1Header = false;
+      let addedList2Header = false;
+      
       for (let i = 0; i < displayList.length; i++) {
         if (displayList[i] === REST_TEXT) {
           content += `\t${REST_TEXT}\n`;
         } else if (isSentence(displayList[i])) {
+          // Check if this is a List 2 sentence by looking for the second set sentences
+          const isList2Sentence = list2.some(sentence => {
+            const cleanSentence = sentence.replace(/<[^>]*>?/gm, '');
+            const cleanDisplay = displayList[i].replace(/<[^>]*>?/gm, '');
+            return cleanDisplay === cleanSentence;
+          });
+          
+          // Add appropriate list header
+          if (!isList2Sentence && !addedList1Header) {
+            content += `List 1\n`;
+            addedList1Header = true;
+          } else if (isList2Sentence && !addedList2Header) {
+            content += `List 2\n`;
+            addedList2Header = true;
+          }
+          
           k++;
           const textOnly = displayList[i].replace(/<[^>]*>?/gm, ''); // remove HTML tags
           content += `${k}\t${textOnly}\n`;
@@ -139,13 +183,12 @@
     <h2>Instructions</h2>
     <h3 id="instructions" style="font-weight: normal; line-height: 1.6;">
       Below, you will see a question and an answer in the textbox.<br>
-      Please say aloud both the question and the sentence as if you are<br> 
-      acting as two speakers talking with each other.<br>
+      Please say aloud both the question and the sentence as if you are acting as two speakers talking with each other.<br>
       Pay attention to emphasize the right word when saying the answers.<br>
       You will see a total of <span id="repetitionCount">x</span> sentence sets.<br><br>
-      在下面的框里，你会看到一个问题和一个回答。<br>
-      请把问题和回答的内容大声读出来，就像两个人在聊天一样。<br>
-      记得把重点词说得更清楚。<br>
+      在下面的框里，你会看到一个问题和一个答案。<br>
+      请把问题和答案都大声读出来，就像两个人在聊天一样。<br>
+      读答案的时候，记得把重点词说得更清楚。<br>
       一共会有 <span id="repetitionCount">4</span> 组句子。<br><br>
 
       Please click Next Sentence to begin.<br>

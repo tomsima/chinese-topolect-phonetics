@@ -23,6 +23,8 @@
     const batchSize = 40;
     let displayList = [];
     let itemsAdded = 0;
+    let subjectname = "";
+    let experimentdate = "";
 
     function shuffle(array) {
       for (let i = array.length - 1; i > 0; i--) {
@@ -32,98 +34,40 @@
       return array;
     }
 
-    // First, add all repetitions of list1
-    for (let i = 0; i < nRepetitions; i++) {
-      let shuffled1 = shuffle(list1.slice());
-      
-      for (let j = 0; j < shuffled1.length; j++) {
-        if (j === 0 || shuffled1[j] !== shuffled1[j - 1]) {
-          displayList.push(shuffled1[j]);
-          itemsAdded++;
+    function generateSentenceList() {
+      displayList = [];
+      itemsAdded = 0;
+
+      // First, add all repetitions of list1
+      for (let i = 0; i < nRepetitions; i++) {
+        let shuffled1 = shuffle(list1.slice());
+        
+        for (let j = 0; j < shuffled1.length; j++) {
+          if (j === 0 || shuffled1[j] !== shuffled1[j - 1]) {
+            displayList.push(shuffled1[j]);
+            itemsAdded++;
+          }
+          if (itemsAdded % batchSize === 0) {
+            displayList.push(REST_TEXT);
+          }
         }
-        if (itemsAdded % batchSize === 0) {
-          displayList.push(REST_TEXT);
-        }
-      }
-      displayList.push(`<span style='color: grey; font-size: 1rem;'>end of sentence set ${i + 1} (List 1)</span>`);
-    }
-
-    // Then, add all repetitions of list2
-    for (let i = 0; i < nRepetitions; i++) {
-      let shuffled2 = shuffle(list2.slice());
-      
-      for (let j = 0; j < shuffled2.length; j++) {
-        if (j === 0 || shuffled2[j] !== shuffled2[j - 1]) {
-          displayList.push(shuffled2[j]);
-          itemsAdded++;
-        }
-        if (itemsAdded % batchSize === 0) {
-          displayList.push(REST_TEXT);
-        }
-      }
-      displayList.push(`<span style='color: grey; font-size: 1rem;'>end of sentence set ${i + 1} (List 2)</span>`);
-    }
-
-    const subjectname = prompt("Participant ID:", "");
-    const experimentdate = prompt("Date of experiment (dd/mm/yy)", "");
-
-    let thisPic = -1;
-    let trialCount = 0;
-
-    function isSentence(content) {
-      return content !== REST_TEXT && !content.includes("end of sentence set");
-    }
-
-    function updateDisplay() {
-      if (thisPic >= 0 && thisPic < displayList.length) {
-        const content = displayList[thisPic];
-        document.getElementById("display").innerHTML = content;
-
-        if (content === REST_TEXT) {
-          document.getElementById("trialNumber").innerText = "Break";
-        } else {
-          document.getElementById("trialNumber").innerText = "";
-        }
-      } else if (thisPic >= displayList.length) {
-        document.getElementById("display").innerHTML = "End of experiment. Thanks for your participation";
-        document.getElementById("trialNumber").innerText = "";
-        document.getElementById("downloadBtn").style.display = "inline-block"; 
-        document.getElementById("nextBtn").style.display = "none"; // hide Next Sentence
+        displayList.push(`<span style='color: grey; font-size: 1rem;'>end of sentence set ${i + 1} (List 1)</span>`);
       }
 
-      // Hide Previous button on first page (thisPic < 0)
-      if (thisPic < 0) {
-        document.getElementById("prevBtn").style.display = "none";
-      } else {
-        document.getElementById("prevBtn").style.display = "inline-block";
-      }
-    }
-
-    function processPrevious() {
-      if (thisPic > 0) {
-        thisPic--;
-        if (isSentence(displayList[thisPic])) {
-          trialCount--;
+      // Then, add all repetitions of list2
+      for (let i = 0; i < nRepetitions; i++) {
+        let shuffled2 = shuffle(list2.slice());
+        
+        for (let j = 0; j < shuffled2.length; j++) {
+          if (j === 0 || shuffled2[j] !== shuffled2[j - 1]) {
+            displayList.push(shuffled2[j]);
+            itemsAdded++;
+          }
+          if (itemsAdded % batchSize === 0) {
+            displayList.push(REST_TEXT);
+          }
         }
-        // Show the Next button again if we're not at the end
-        if (thisPic < displayList.length) {
-          document.getElementById("nextBtn").style.display = "inline-block";
-          document.getElementById("downloadBtn").style.display = "none";
-        }
-        updateDisplay();
-      }
-    }
-
-    function processNext() {
-      if (thisPic < displayList.length - 1) {
-        thisPic++;
-        if (isSentence(displayList[thisPic])) {
-          trialCount++;
-        }
-        updateDisplay();
-      } else {
-        thisPic = displayList.length;
-        updateDisplay();
+        displayList.push(`<span style='color: grey; font-size: 1rem;'>end of sentence set ${i + 1} (List 2)</span>`);
       }
     }
 
@@ -166,14 +110,101 @@
       const blob = new Blob([fileContent], {type: "text/plain;charset=utf-8"});
       const link = document.createElement("a");
       link.href = URL.createObjectURL(blob);
-      link.download = `ZH-YT-sentence-list-${subjectname}-${experimentdate}.txt`;;
+      link.download = `ZH-YT-sentence-list-${subjectname}-${experimentdate}.txt`;
       link.click();
+    }
+
+    function initializeExperiment() {
+      subjectname = prompt("Name", "");
+      experimentdate = prompt("Date of experiment (dd/mm/yy)", "");
+      
+      // Check if user cancelled or entered empty values
+      if (subjectname === null || experimentdate === null || 
+          subjectname.trim() === "" || experimentdate.trim() === "") {
+        alert("Name and date are required to start the experiment.");
+        return;
+      }
+
+      // Generate the sentence list
+      generateSentenceList();
+      
+      // Automatically download the sentence file
+      downloadResults();
+      
+      // Show a confirmation message
+      alert("Sentence file has been downloaded. You can now begin the experiment.");
+      
+      // Initialize the experiment display
+      thisPic = -1;
+      trialCount = 0;
+      updateDisplay();
+      
+      // Show the experiment interface
+      document.getElementById("experimentInterface").style.display = "block";
+      document.getElementById("startButton").style.display = "none";
+    }
+
+    let thisPic = -1;
+    let trialCount = 0;
+
+    function isSentence(content) {
+      return content !== REST_TEXT && !content.includes("end of sentence set");
+    }
+
+    function updateDisplay() {
+      if (thisPic >= 0 && thisPic < displayList.length) {
+        const content = displayList[thisPic];
+        document.getElementById("display").innerHTML = content;
+
+        if (content === REST_TEXT) {
+          document.getElementById("trialNumber").innerText = "Break";
+        } else {
+          document.getElementById("trialNumber").innerText = "";
+        }
+      } else if (thisPic >= displayList.length) {
+        document.getElementById("display").innerHTML = "End of experiment. Thanks for your participation";
+        document.getElementById("trialNumber").innerText = "";
+        document.getElementById("nextBtn").style.display = "none"; // hide Next Sentence
+      }
+
+      // Hide Previous button on first page (thisPic < 0)
+      if (thisPic < 0) {
+        document.getElementById("prevBtn").style.display = "none";
+      } else {
+        document.getElementById("prevBtn").style.display = "inline-block";
+      }
+    }
+
+    function processPrevious() {
+      if (thisPic > 0) {
+        thisPic--;
+        if (isSentence(displayList[thisPic])) {
+          trialCount--;
+        }
+        // Show the Next button again if we're not at the end
+        if (thisPic < displayList.length) {
+          document.getElementById("nextBtn").style.display = "inline-block";
+        }
+        updateDisplay();
+      }
+    }
+
+    function processNext() {
+      if (thisPic < displayList.length - 1) {
+        thisPic++;
+        if (isSentence(displayList[thisPic])) {
+          trialCount++;
+        }
+        updateDisplay();
+      } else {
+        thisPic = displayList.length;
+        updateDisplay();
+      }
     }
 
     window.onload = function() {
       document.getElementById("repetitionCount").innerText = nRepetitions;
-      // Hide Previous button initially
-      document.getElementById("prevBtn").style.display = "none";
+      document.getElementById("repetitionCount2").innerText = nRepetitions;
     };
   </script>
 </head>
@@ -185,27 +216,26 @@
       Below, you will see a question and an answer in the textbox.<br>
       Please say aloud both the question and the sentence as if you are acting as two speakers talking with each other.<br>
       Pay attention to emphasize the right word when saying the answers.<br>
-      You will see a total of <span id="repetitionCount">x</span> sentence sets.<br><br>
+      You will see a total of <span id="repetitionCount">4</span> sentence sets.<br><br>
       在下面的框里，你会看到一个问题和一个答案。<br>
       请把问题和答案都大声读出来，就像两个人在聊天一样。<br>
       读答案的时候，记得把重点词说得更清楚。<br>
-      一共会有 <span id="repetitionCount">4</span> 组句子。<br><br>
-
-      Please click Next Sentence to begin.<br>
-      点击"下一句"就可以开始啦。
+      一共会有 <span id="repetitionCount2">4</span> 组句子。<br><br>
     </h3>
 
-    <div id="display" style="width: 100%; min-height: 100px; font-size: 2rem; padding: 10px; border: 1px solid #ccc; text-align: left;"></div>
-    <p id="trialNumber" style="font-size: 1.2rem; margin-top: 10px;"></p>
-
-    <div class="buttons" style="margin-top: 30px; display: flex; justify-content: center; gap: 20px;">
-      <a id="prevBtn" href="javascript:processPrevious()" style="text-decoration: none; padding: 10px 20px; font-size: 1rem; background-color: #007bff; color: white; border-radius: 6px;">&laquo; 上一句 | Previous Sentence</a>
-      <a id="nextBtn" href="javascript:processNext()" style="text-decoration: none; padding: 10px 20px; font-size: 1rem; background-color: #007bff; color: white; border-radius: 6px;">下一句 | Next Sentence &raquo;</a>
-    </div>
-
-    <button id="downloadBtn" onclick="downloadResults()" style="display:none; margin-top:20px; padding:10px 20px; font-size:1rem; background-color:#28a745; color:white; border:none; border-radius:6px; cursor:pointer;">
-      Download Sentence File
+    <button id="startButton" onclick="initializeExperiment()" style="padding: 15px 30px; font-size: 1.2rem; background-color: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer; margin-bottom: 20px;">
+      Start Experiment / 开始实验
     </button>
+
+    <div id="experimentInterface" style="display: none;">
+      <div id="display" style="width: 100%; min-height: 100px; font-size: 2rem; padding: 10px; border: 1px solid #ccc; text-align: left;"></div>
+      <p id="trialNumber" style="font-size: 1.2rem; margin-top: 10px;"></p>
+
+      <div class="buttons" style="margin-top: 30px; display: flex; justify-content: center; gap: 20px;">
+        <a id="prevBtn" href="javascript:processPrevious()" style="text-decoration: none; padding: 10px 20px; font-size: 1rem; background-color: #007bff; color: white; border-radius: 6px;">&laquo; 上一句 | Previous Sentence</a>
+        <a id="nextBtn" href="javascript:processNext()" style="text-decoration: none; padding: 10px 20px; font-size: 1rem; background-color: #007bff; color: white; border-radius: 6px;">下一句 | Next Sentence &raquo;</a>
+      </div>
+    </div>
   </div>
 </body>
 </html>
